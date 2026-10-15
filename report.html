@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>แดชบอร์ดอัตราการแจ้งเตือนต่อระยะทาง</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#eef2f5;--panel:#fff;--ink:#14263a;--muted:#5b6b7b;--line:#d5dde5;--ok:#2f8f83;--hi:#d64545;--lo:#c47a12;--acc:#1f5f8b;--band:rgba(47,143,131,.14);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a24;--panel:#17252f;--ink:#e6edf3;--muted:#93a4b4;--line:#2a3b49;--ok:#4fc0b0;--hi:#ff7a7a;--lo:#f0b44c;--acc:#6bb3e0;--band:rgba(79,192,176,.16);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1a24;--panel:#17252f;--ink:#e6edf3;--muted:#93a4b4;--line:#2a3b49;--ok:#4fc0b0;--hi:#ff7a7a;--lo:#f0b44c;--acc:#6bb3e0;--band:rgba(79,192,176,.16);color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 "IBM Plex Sans Thai","Noto Sans Thai",Sarabun,system-ui,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:22px;margin:0 0 4px;font-weight:600}
+h2{font-size:16px;margin:0 0 10px;font-weight:600}
+.sub{color:var(--muted);margin:0 0 18px;max-width:70ch}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.drop{display:block;border:2px dashed var(--line);border-radius:8px;padding:14px;cursor:pointer;margin-bottom:10px}
+.drop:hover,.drop:focus-within{border-color:var(--acc)}
+.drop input{position:absolute;opacity:0;width:1px;height:1px}
+.drop b{display:block}.drop span{color:var(--muted);font-size:13px}
+.drop.ok{border-style:solid;border-color:var(--ok)}
+label.f{display:flex;flex-direction:column;font-size:13px;color:var(--muted);gap:2px;min-width:140px;flex:1}
+select,input[type=number],input[type=search]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%}
+select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:6px 12px}
+button.p{background:var(--acc);border-color:var(--acc);color:#fff}
+[data-theme="dark"] button.p{color:#0f1a24}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));padding:0;overflow:hidden}
+.stats div{padding:14px 16px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.stats small{display:block;color:var(--muted);font-size:12.5px}
+.stats strong{font-size:22px;font-weight:600}
+.stats .hi strong{color:var(--hi)}.stats .lo strong{color:var(--lo)}
+.note{color:var(--muted);font-size:13px;margin:6px 0 0}
+.warn{color:var(--lo)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.bar input[type=search]{max-width:220px}
+.chip[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#fff}
+[data-theme="dark"] .chip[aria-pressed=true]{color:#0f1a24}
+.scroll{overflow:auto;max-height:560px;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;min-width:720px}
+th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{position:sticky;top:0;background:var(--panel);z-index:2;font-weight:600;font-size:13px}
+th button{border:0;background:none;padding:0;font-weight:600;color:inherit}
+td.vis{width:38%;min-width:240px;padding:7px 10px}
+.track{position:relative;height:14px;background:var(--bg);border-radius:3px}
+.track::before{content:"";position:absolute;top:0;bottom:0;left:var(--lo-p);width:calc(var(--hi-p) - var(--lo-p));background:var(--band)}
+.track::after{content:"";position:absolute;top:-3px;bottom:-3px;left:var(--b-p);width:2px;background:var(--ink)}
+.fill{position:absolute;top:3px;bottom:3px;left:0;border-radius:0 3px 3px 0}
+.s-hi{color:var(--hi);font-weight:600}.s-lo{color:var(--lo);font-weight:600}.s-ok{color:var(--ok)}
+.fill.s-hi{background:var(--hi)}.fill.s-lo{background:var(--lo)}.fill.s-ok{background:var(--ok)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-bottom:8px}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.fill{transition:width .3s}}
+</style>
+</head>
+<body>
+<main>
+<h1>อัตราการแจ้งเตือนต่อระยะทาง</h1>
+<p class="sub">อัปโหลดไฟล์ระยะทางและไฟล์การแจ้งเตือน ระบบจะคำนวณจำนวนแจ้งเตือนต่อ 1,000 กม. ของรถแต่ละคัน หาค่ากลางของทั้งกลุ่ม และชี้คันที่แจ้งเตือนมากหรือน้อยผิดปกติ ข้อมูลประมวลผลในเบราว์เซอร์ของคุณเท่านั้น</p>
+
+<div class="grid">
+  <section class="panel">
+    <h2>1. ไฟล์ระยะทาง (Excel / CSV)</h2>
+    <label class="drop" id="dropD"><input type="file" id="fD" accept=".xlsx,.xls,.csv"><b id="nD">เลือกไฟล์ระยะทาง</b><span>แต่ละแถวคือระยะทางของรถหนึ่งคัน (มีหลายแถวต่อคันได้ ระบบจะรวมให้)</span></label>
+    <div class="row">
+      <label class="f">คอลัมน์ทะเบียน<select id="dPlate"></select></label>
+      <label class="f">คอลัมน์ระยะทาง<select id="dKm"></select></label>
+      <label class="f">หน่วยระยะทาง<select id="unit"><option value="1">กิโลเมตร</option><option value="0.001">เมตร</option></select></label>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>2. ไฟล์การแจ้งเตือน (Excel / CSV)</h2>
+    <label class="drop" id="dropA"><input type="file" id="fA" accept=".xlsx,.xls,.csv"><b id="nA">เลือกไฟล์การแจ้งเตือน</b><span>แต่ละแถวคือการแจ้งเตือนหนึ่งครั้ง</span></label>
+    <div class="row">
+      <label class="f">คอลัมน์ทะเบียน<select id="aPlate"></select></label>
+      <label class="f">คอลัมน์ประเภทแจ้งเตือน (ถ้ามี)<select id="aType"></select></label>
+      <label class="f">นับเฉพาะประเภท<select id="typeSel"><option value="">ทุกประเภท</option></select></label>
+    </div>
+  </section>
+</div>
+
+<section class="panel">
+  <h2>3. เกณฑ์ตัดสิน</h2>
+  <div class="row">
+    <label class="f">ค่ากลางที่ใช้อ้างอิง<select id="base"><option value="median">มัธยฐาน (median)</option><option value="mean">ค่าเฉลี่ย (mean)</option></select></label>
+    <label class="f">วิธีกำหนดช่วงปกติ<select id="method"><option value="pct">± เปอร์เซ็นต์จากค่ากลาง</option><option value="iqr">IQR (Q1−1.5×IQR ถึง Q3+1.5×IQR)</option></select></label>
+    <label class="f" id="pctW">เปอร์เซ็นต์ที่ยอมรับได้ (%)<input type="number" id="pct" value="50" min="1" max="500"></label>
+    <label class="f">ตัดรถที่วิ่งน้อยกว่า (กม.)<input type="number" id="minKm" value="100" min="0"></label>
+    <div style="align-self:end"><button id="demo" type="button">ลองใช้ข้อมูลตัวอย่าง</button></div>
+  </div>
+  <p class="note">รถที่วิ่งน้อยมากจะให้อัตราที่ไม่นิ่ง จึงแนะนำให้ตัดออกจากการคำนวณค่ากลาง รถที่มีระยะทางแต่ไม่มีแจ้งเตือนเลยจะนับเป็น 0 ครั้ง</p>
+  <p class="note warn" id="msg" role="status"></p>
+</section>
+
+<div id="out"><div class="panel empty">อัปโหลดทั้งสองไฟล์เพื่อดูผล หรือกด “ลองใช้ข้อมูลตัวอย่าง”</div></div>
+</main>
+
+<script>
+const $=s=>document.querySelector(s);
+const S={d:null,a:null};let sortK='rate',sortDir=-1,flt='all',q='',V=[],st={};
+const num=v=>{const n=parseFloat(String(v).replace(/,/g,''));return isNaN(n)?0:n};
+const norm=p=>String(p).replace(/[\s\-\.]/g,'').toUpperCase();
+const fmt=(n,d=2)=>Number(n).toLocaleString('en-US',{maximumFractionDigits:d});
+const RE={plate:/ทะเบียน|plate|licen|regist|vehicle|รถ/i,km:/ระยะ|distance|km|กม|mileage|ไมล์/i,type:/ประเภท|type|alert|event|แจ้งเตือน|ชนิด|alarm/i};
+function fill(sel,h,re,opt){sel.innerHTML=(opt?'<option value="">(ไม่ใช้)</option>':'')+h.map(x=>`<option>${x}</option>`).join('');const m=h.find(x=>re.test(x));if(m)sel.value=m;else if(!opt)sel.selectedIndex=0}
+function load(k,f){const r=new FileReader();r.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'array'});const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});if(!rows.length)throw 0;S[k]={rows,h:Object.keys(rows[0])};$(k=='d'?'#nD':'#nA').textContent=f.name+' ('+fmt(rows.length,0)+' แถว)';$(k=='d'?'#dropD':'#dropA').classList.add('ok');setup(k);$('#msg').textContent=''}catch(x){$('#msg').textContent='อ่านไฟล์ '+f.name+' ไม่ได้ กรุณาตรวจว่าเป็นไฟล์ .xlsx หรือ .csv ที่มีหัวคอลัมน์ในแถวแรก'}};r.readAsArrayBuffer(f)}
+function setup(k){if(k=='d'){fill($('#dPlate'),S.d.h,RE.plate);fill($('#dKm'),S.d.h,RE.km)}else{fill($('#aPlate'),S.a.h,RE.plate);fill($('#aType'),S.a.h,RE.type,true);types()}run()}
+function types(){const c=$('#aType').value;const s=$('#typeSel');if(!c||!S.a){s.innerHTML='<option value="">ทุกประเภท</option>';return}const u=[...new Set(S.a.rows.map(r=>String(r[c])))].filter(Boolean).sort().slice(0,100);s.innerHTML='<option value="">ทุกประเภท</option>'+u.map(x=>`<option>${x}</option>`).join('')}
+function quant(a,p){const i=(a.length-1)*p,l=Math.floor(i);return a[l]+(a[Math.min(l+1,a.length-1)]-a[l])*(i-l)}
+function run(){
+ if(!S.d||!S.a)return;
+ const unit=+$('#unit').value,dP=$('#dPlate').value,dK=$('#dKm').value,aP=$('#aPlate').value,aT=$('#aType').value,tv=$('#typeSel').value,minKm=num($('#minKm').value);
+ const km=new Map(),name=new Map(),cnt=new Map();
+ S.d.rows.forEach(r=>{const p=norm(r[dP]);if(!p)return;name.set(p,name.get(p)||String(r[dP]).trim());km.set(p,(km.get(p)||0)+num(r[dK])*unit)});
+ let extra=new Set(),totalA=0;
+ S.a.rows.forEach(r=>{if(aT&&tv&&String(r[aT])!==tv)return;const p=norm(r[aP]);if(!p)return;totalA++;if(!km.has(p))extra.add(p);cnt.set(p,(cnt.get(p)||0)+1)});
+ const all=[...km].map(([p,k])=>({p,plate:name.get(p),km:k,n:cnt.get(p)||0,rate:k>0?(cnt.get(p)||0)/k*1000:0}));
+ const used=all.filter(v=>v.km>=minKm&&v.km>0);
+ const skipped=all.length-used.length;
+ if(!used.length){$('#out').innerHTML='<div class="panel empty">ไม่มีรถที่ผ่านเกณฑ์ระยะทางขั้นต่ำ ลองลดค่า “ตัดรถที่วิ่งน้อยกว่า” หรือตรวจคอลัมน์ที่เลือก</div>';return}
+ const rs=used.map(v=>v.rate).sort((a,b)=>a-b);
+ const mean=rs.reduce((a,b)=>a+b,0)/rs.length,med=quant(rs,.5),base=$('#base').value=='mean'?mean:med;
+ let lo,hi;
+ if($('#method').value=='iqr'){const q1=quant(rs,.25),q3=quant(rs,.75),i=q3-q1;lo=Math.max(0,q1-1.5*i);hi=q3+1.5*i}
+ else{const p=num($('#pct').value)/100;lo=base*(1-p);hi=base*(1+p)}
+ $('#pctW').style.display=$('#method').value=='pct'?'':'none';
+ used.forEach(v=>{v.diff=base?(v.rate-base)/base*100:0;v.s=v.rate>hi?'hi':v.rate<lo?'lo':'ok'});
+ V=used;st={mean,med,base,lo,hi,max:Math.max(...rs,hi)*1.05,skipped,extra:extra.size,total:all.length,totalA,hi_n:used.filter(v=>v.s=='hi').length,lo_n:used.filter(v=>v.s=='lo').length,unit:'ครั้ง / 1,000 กม.'};
+ draw()}
+function draw(){
+ const b=st.base,m=st.max;
+ $('#out').innerHTML=`
+ <section class="panel stats">
+  <div><small>รถที่ใช้คำนวณ</small><strong>${fmt(V.length,0)}</strong></div>
+  <div><small>มัธยฐาน</small><strong>${fmt(st.med)}</strong></div>
+  <div><small>ค่าเฉลี่ย</small><strong>${fmt(st.mean)}</strong></div>
+  <div><small>ช่วงปกติ</small><strong>${fmt(st.lo,1)}–${fmt(st.hi,1)}</strong></div>
+  <div class="hi"><small>แจ้งเตือนมากเกินไป</small><strong>${st.hi_n}</strong></div>
+  <div class="lo"><small>แจ้งเตือนน้อยเกินไป</small><strong>${st.lo_n}</strong></div>
+ </section>
+ <section class="panel">
+  <h2>เทียบรถแต่ละคัน (${st.unit})</h2>
+  <div class="legend"><span>เส้นดำ = ค่ากลางที่ใช้ (${fmt(b)})</span><span>พื้นหลังเขียวอ่อน = ช่วงปกติ</span></div>
+  <div class="bar">
+   <input type="search" id="q" placeholder="ค้นหาทะเบียน" value="${q}" aria-label="ค้นหาทะเบียน">
+   ${[['all','ทั้งหมด'],['hi','มากเกินไป'],['lo','น้อยเกินไป'],['ok','ปกติ']].map(([k,t])=>`<button class="chip" type="button" data-f="${k}" aria-pressed="${flt==k}">${t}</button>`).join('')}
+   <button type="button" id="exp" class="p" style="margin-left:auto">ดาวน์โหลด CSV</button>
+  </div>
+  <div class="scroll"><table><thead><tr>
+   ${[['plate','ทะเบียน'],['km','ระยะทาง (กม.)'],['n','แจ้งเตือน (ครั้ง)'],['rate','อัตรา / 1,000 กม.'],['diff','ต่างจากค่ากลาง'],['s','สถานะ']].map(([k,t])=>`<th><button type="button" data-s="${k}">${t}${sortK==k?(sortDir>0?' ▲':' ▼'):''}</button></th>`).join('').replace('</th><th><button type="button" data-s="s">','</th><th style="text-align:left">กราฟ</th><th style="text-align:left"><button type="button" data-s="s">')}
+  </tr></thead><tbody id="tb" style="--lo-p:${st.lo/m*100}%;--hi-p:${Math.min(st.hi/m,1)*100}%;--b-p:${b/m*100}%"></tbody></table></div>
+  <p class="note">${fmt(st.total,0)} คันในไฟล์ระยะทาง · ตัดออกเพราะวิ่งน้อยกว่าเกณฑ์ ${st.skipped} คัน · แจ้งเตือนที่นับ ${fmt(st.totalA,0)} ครั้ง${st.extra?` · <span class="warn">พบ ${st.extra} ทะเบียนในไฟล์แจ้งเตือนที่ไม่มีในไฟล์ระยะทาง (ไม่ถูกนำมาคำนวณ)</span>`:''}</p>
+ </section>`;
+ rows();
+ $('#q').oninput=e=>{q=e.target.value;rows()};
+ document.querySelectorAll('[data-f]').forEach(x=>x.onclick=()=>{flt=x.dataset.f;draw();$('#q').focus()});
+ document.querySelectorAll('[data-s]').forEach(x=>x.onclick=()=>{const k=x.dataset.s;sortDir=sortK==k?-sortDir:-1;sortK=k;draw()});
+ $('#exp').onclick=exportCsv}
+function list(){const t=q.trim().toUpperCase();return V.filter(v=>(flt=='all'||v.s==flt)&&(!t||norm(v.plate).includes(norm(t)))).sort((a,b)=>{const x=a[sortK],y=b[sortK];return(typeof x=='string'?x.localeCompare(y):x-y)*sortDir})}
+const SL={hi:'มากเกินไป ▲',lo:'น้อยเกินไป ▼',ok:'ปกติ'};
+function rows(){const L=list();$('#tb').innerHTML=L.length?L.map(v=>`<tr><td>${v.plate}</td><td>${fmt(v.km,1)}</td><td>${fmt(v.n,0)}</td><td>${fmt(v.rate)}</td><td class="s-${v.s}">${v.diff>0?'+':''}${fmt(v.diff,0)}%</td><td class="vis"><div class="track"><div class="fill s-${v.s}" style="width:${Math.min(v.rate/st.max,1)*100}%"></div></div></td><td class="s-${v.s}" style="text-align:left">${SL[v.s]}</td></tr>`).join(''):'<tr><td colspan="7" class="empty">ไม่พบรถตามเงื่อนไข</td></tr>'}
+function exportCsv(){const h='ทะเบียน,ระยะทาง(กม.),แจ้งเตือน(ครั้ง),อัตรา/1000กม.,ต่างจากค่ากลาง(%),สถานะ\n';const c=list().map(v=>[v.plate,v.km.toFixed(1),v.n,v.rate.toFixed(3),v.diff.toFixed(1),SL[v.s].replace(/ [▲▼]/,'')].join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+h+c],{type:'text/csv;charset=utf-8'}));a.download='alert-rate.csv';a.click()}
+$('#fD').onchange=e=>e.target.files[0]&&load('d',e.target.files[0]);
+$('#fA').onchange=e=>e.target.files[0]&&load('a',e.target.files[0]);
+['#dPlate','#dKm','#unit','#aPlate','#typeSel','#base','#method','#pct','#minKm'].forEach(s=>$(s).addEventListener('change',run));
+$('#pct').addEventListener('input',run);$('#minKm').addEventListener('input',run);
+$('#aType').addEventListener('change',()=>{types();run()});
+$('#demo').onclick=()=>{const T=['ง่วงนอน','เบรกกะทันหัน','เร่งเครื่องเร็ว','เปลี่ยนเลน'],d=[],a=[];
+ for(let i=0;i<40;i++){const p=(i%9+1)+'กข '+(1000+i),km=2000+Math.round(Math.random()*7000),r=i%9==0?20:i%13==5?.5:8+Math.random()*3-1.5;d.push({'ทะเบียน':p,'ระยะทาง (กม.)':km});const n=Math.round(km/1000*r);for(let j=0;j<n;j++)a.push({'ทะเบียน':p,'ประเภทแจ้งเตือน':T[Math.floor(Math.random()*4)]})}
+ S.d={rows:d,h:Object.keys(d[0])};S.a={rows:a,h:Object.keys(a[0])};$('#nD').textContent='ข้อมูลตัวอย่าง (ระยะทาง)';$('#nA').textContent='ข้อมูลตัวอย่าง (แจ้งเตือน)';fill($('#dPlate'),S.d.h,RE.plate);fill($('#dKm'),S.d.h,RE.km);fill($('#aPlate'),S.a.h,RE.plate);fill($('#aType'),S.a.h,RE.type,true);types();run()};
+</script>
+</body>
+</html>
