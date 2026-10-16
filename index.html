@@ -58,6 +58,8 @@ td.vis{width:38%;min-width:240px;padding:7px 10px}
 .fill.s-hi{background:var(--hi)}.fill.s-lo{background:var(--lo)}.fill.s-ok{background:var(--ok)}
 .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-bottom:8px}
 .empty{padding:28px;text-align:center;color:var(--muted)}
+.rng{display:flex;gap:6px;align-items:center}.rng input{width:100px}
+.fbar{border-top:1px solid var(--line);padding-top:10px;align-items:flex-end}
 @media (prefers-reduced-motion:no-preference){.fill{transition:width .3s}}
 </style>
 </head>
@@ -105,7 +107,7 @@ td.vis{width:38%;min-width:240px;padding:7px 10px}
 
 <script>
 const $=s=>document.querySelector(s);
-const S={d:null,a:null};let sortK='rate',sortDir=-1,flt='all',q='',V=[],st={};
+const S={d:null,a:null};let sortK='rate',sortDir=-1,flt='all',q='',V=[],st={},F={};
 const num=v=>{const n=parseFloat(String(v).replace(/,/g,''));return isNaN(n)?0:n};
 const norm=p=>String(p).replace(/[\s\-\.]/g,'').toUpperCase();
 const fmt=(n,d=2)=>Number(n).toLocaleString('en-US',{maximumFractionDigits:d});
@@ -154,6 +156,13 @@ function draw(){
    ${[['all','ทั้งหมด'],['hi','มากเกินไป'],['lo','น้อยเกินไป'],['ok','ปกติ']].map(([k,t])=>`<button class="chip" type="button" data-f="${k}" aria-pressed="${flt==k}">${t}</button>`).join('')}
    <button type="button" id="exp" class="p" style="margin-left:auto">ดาวน์โหลด CSV</button>
   </div>
+  <div class="bar fbar">
+   <label class="f" style="max-width:200px">เรียงตาม<select id="sk">${[['rate','อัตรา / 1,000 กม.'],['n','จำนวนแจ้งเตือน'],['km','ระยะทาง'],['diff','ต่างจากค่ากลาง'],['plate','ทะเบียน'],['s','สถานะ']].map(([k,t])=>`<option value="${k}"${sortK==k?' selected':''}>${t}</option>`).join('')}</select></label>
+   <label class="f" style="max-width:160px">ลำดับ<select id="sd"><option value="-1"${sortDir<0?' selected':''}>มากไปน้อย</option><option value="1"${sortDir>0?' selected':''}>น้อยไปมาก</option></select></label>
+   ${[['อัตรา / 1,000 กม.','r'],['ระยะทาง (กม.)','k'],['จำนวนแจ้งเตือน (ครั้ง)','n']].map(([t,c])=>`<label class="f">${t}<span class="rng"><input type="number" placeholder="ต่ำสุด" data-r="${c}Min" value="${F[c+'Min']??''}"> – <input type="number" placeholder="สูงสุด" data-r="${c}Max" value="${F[c+'Max']??''}"></span></label>`).join('')}
+   <button type="button" id="clr">ล้างตัวกรอง</button>
+   <span class="note" id="cnt" role="status"></span>
+  </div>
   <div class="scroll"><table><thead><tr>
    ${[['plate','ทะเบียน'],['km','ระยะทาง (กม.)'],['n','แจ้งเตือน (ครั้ง)'],['rate','อัตรา / 1,000 กม.'],['diff','ต่างจากค่ากลาง'],['s','สถานะ']].map(([k,t])=>`<th><button type="button" data-s="${k}">${t}${sortK==k?(sortDir>0?' ▲':' ▼'):''}</button></th>`).join('').replace('</th><th><button type="button" data-s="s">','</th><th style="text-align:left">กราฟ</th><th style="text-align:left"><button type="button" data-s="s">')}
   </tr></thead><tbody id="tb" style="--lo-p:${st.lo/m*100}%;--hi-p:${Math.min(st.hi/m,1)*100}%;--b-p:${b/m*100}%"></tbody></table></div>
@@ -163,10 +172,15 @@ function draw(){
  $('#q').oninput=e=>{q=e.target.value;rows()};
  document.querySelectorAll('[data-f]').forEach(x=>x.onclick=()=>{flt=x.dataset.f;draw();$('#q').focus()});
  document.querySelectorAll('[data-s]').forEach(x=>x.onclick=()=>{const k=x.dataset.s;sortDir=sortK==k?-sortDir:-1;sortK=k;draw()});
- $('#exp').onclick=exportCsv}
-function list(){const t=q.trim().toUpperCase();return V.filter(v=>(flt=='all'||v.s==flt)&&(!t||norm(v.plate).includes(norm(t)))).sort((a,b)=>{const x=a[sortK],y=b[sortK];return(typeof x=='string'?x.localeCompare(y):x-y)*sortDir})}
+ $('#exp').onclick=exportCsv;
+ $('#sk').onchange=e=>{sortK=e.target.value;draw()};
+ $('#sd').onchange=e=>{sortDir=+e.target.value;draw()};
+ document.querySelectorAll('[data-r]').forEach(x=>x.oninput=()=>{F[x.dataset.r]=x.value;rows()});
+ $('#clr').onclick=()=>{F={};flt='all';q='';draw()}}
+const inR=(x,a,b)=>(a===undefined||a===''||x>=+a)&&(b===undefined||b===''||x<=+b);
+function list(){const t=q.trim().toUpperCase();return V.filter(v=>(flt=='all'||v.s==flt)&&(!t||norm(v.plate).includes(norm(t)))&&inR(v.rate,F.rMin,F.rMax)&&inR(v.km,F.kMin,F.kMax)&&inR(v.n,F.nMin,F.nMax)).sort((a,b)=>{const x=a[sortK],y=b[sortK];return(typeof x=='string'?x.localeCompare(y):x-y)*sortDir})}
 const SL={hi:'มากเกินไป ▲',lo:'น้อยเกินไป ▼',ok:'ปกติ'};
-function rows(){const L=list();$('#tb').innerHTML=L.length?L.map(v=>`<tr><td>${v.plate}</td><td>${fmt(v.km,1)}</td><td>${fmt(v.n,0)}</td><td>${fmt(v.rate)}</td><td class="s-${v.s}">${v.diff>0?'+':''}${fmt(v.diff,0)}%</td><td class="vis"><div class="track"><div class="fill s-${v.s}" style="width:${Math.min(v.rate/st.max,1)*100}%"></div></div></td><td class="s-${v.s}" style="text-align:left">${SL[v.s]}</td></tr>`).join(''):'<tr><td colspan="7" class="empty">ไม่พบรถตามเงื่อนไข</td></tr>'}
+function rows(){const L=list();$('#cnt').textContent='แสดง '+L.length+' จาก '+V.length+' คัน';$('#tb').innerHTML=L.length?L.map(v=>`<tr><td>${v.plate}</td><td>${fmt(v.km,1)}</td><td>${fmt(v.n,0)}</td><td>${fmt(v.rate)}</td><td class="s-${v.s}">${v.diff>0?'+':''}${fmt(v.diff,0)}%</td><td class="vis"><div class="track"><div class="fill s-${v.s}" style="width:${Math.min(v.rate/st.max,1)*100}%"></div></div></td><td class="s-${v.s}" style="text-align:left">${SL[v.s]}</td></tr>`).join(''):'<tr><td colspan="7" class="empty">ไม่พบรถตามเงื่อนไข</td></tr>'}
 function exportCsv(){const h='ทะเบียน,ระยะทาง(กม.),แจ้งเตือน(ครั้ง),อัตรา/1000กม.,ต่างจากค่ากลาง(%),สถานะ\n';const c=list().map(v=>[v.plate,v.km.toFixed(1),v.n,v.rate.toFixed(3),v.diff.toFixed(1),SL[v.s].replace(/ [▲▼]/,'')].join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+h+c],{type:'text/csv;charset=utf-8'}));a.download='alert-rate.csv';a.click()}
 $('#fD').onchange=e=>e.target.files[0]&&load('d',e.target.files[0]);
 $('#fA').onchange=e=>e.target.files[0]&&load('a',e.target.files[0]);
